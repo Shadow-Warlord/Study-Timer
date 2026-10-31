@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cadence – Study & Rest Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1020;--ink:#eef1ff;--mute:#9aa4c7;--glass:rgba(255,255,255,.07);--glass2:rgba(255,255,255,.12);
+  --line:rgba(255,255,255,.16);--hi:rgba(255,255,255,.28);--shadow:0 20px 50px rgba(2,4,20,.45);
+  --study:#7aa7ff;--study2:#9b8cff;--rest:#5eead4;--rest2:#7dd3fc;--orb1:#3b5bdb;--orb2:#7048e8;
+  --a:var(--study);--a2:var(--study2);
+  box-sizing:border-box;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+}
+:root[data-theme="light"]{--bg:#e9edfb;--ink:#14183a;--mute:#566089;--glass:rgba(255,255,255,.55);--glass2:rgba(255,255,255,.8);--line:rgba(255,255,255,.9);--hi:#fff;--shadow:0 20px 50px rgba(60,70,140,.18);--study:#3f66e8;--study2:#7a5cf0;--rest:#0f9d8a;--rest2:#2589c9;--orb1:#9db4ff;--orb2:#c3b2ff}
+body[data-mode="rest"]{--a:var(--rest);--a2:var(--rest2);--orb1:#0d9488;--orb2:#2563eb}
+:root[data-theme="light"] body[data-mode="rest"]{--orb1:#8be6d8;--orb2:#a5d3ff}
+*{box-sizing:border-box;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px);min-height:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none;touch-action:pan-y;-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;max-width:100%;font:400 16px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);overflow-x:clip;touch-action:pan-y;transition:background .8s}
+.orbs{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;pointer-events:none;transition:background .9s;z-index:0}
+.o1{width:46vmax;height:46vmax;left:-14vmax;top:-12vmax;background:var(--orb1)}
+.o2{width:40vmax;height:40vmax;right:-12vmax;bottom:-12vmax;background:var(--orb2)}
+.wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:20px 20px 40px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:.2px}
+.glass{background:var(--glass);border:1px solid var(--line);border-top-color:var(--hi);border-radius:28px;box-shadow:var(--shadow),inset 0 1px 0 var(--hi);-webkit-backdrop-filter:blur(24px) saturate(140%);backdrop-filter:blur(24px) saturate(140%)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);transition:transform .2s,background .2s}
+.icon:hover{background:var(--glass2);transform:rotate(30deg)}
+main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+main>*{min-width:0}
+.stage{padding:34px 24px 30px;display:flex;flex-direction:column;align-items:center;gap:26px}
+.ringbox{position:relative;width:min(76vw,360px,46dvh);aspect-ratio:1}
+.ringbox svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.trk{fill:none;stroke:var(--glass2);stroke-width:7}
+.bar{fill:none;stroke:url(#g);stroke-width:7;stroke-linecap:round;stroke-dasharray:565.49;transition:stroke-dashoffset .3s linear;filter:drop-shadow(0 0 8px var(--a))}
+.run .bar{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{filter:drop-shadow(0 0 16px var(--a))}}
+.core{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.pill{font-size:12px;font-weight:600;letter-spacing:.16em;padding:5px 14px;border-radius:99px;background:color-mix(in srgb,var(--a) 22%,transparent);color:var(--a);border:1px solid color-mix(in srgb,var(--a) 40%,transparent);transition:all .6s}
+.time{font-size:clamp(44px,13vw,72px);font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.05}
+.next{font-size:14px;color:var(--mute)}
+.paused .time{opacity:.55;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.ctl{display:flex;gap:10px;justify-content:center;width:100%;max-width:400px}
+.btn{flex:1 1 0;min-width:0;min-height:48px;padding:0 12px;border-radius:16px;background:var(--glass);border:1px solid var(--line);font-weight:500;transition:transform .15s,background .2s,opacity .2s}
+.btn:hover:not(:disabled){background:var(--glass2)}.btn:active:not(:disabled){transform:scale(.96)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.main{flex:1.5 1 0;font-weight:600;color:#0b1020;background:linear-gradient(135deg,var(--a),var(--a2));border-color:transparent;box-shadow:0 8px 24px color-mix(in srgb,var(--a) 45%,transparent)}
+.btn.main:hover:not(:disabled){background:linear-gradient(135deg,var(--a),var(--a2));filter:brightness(1.08)}
+.side{display:flex;flex-direction:column;gap:20px}
+.card{padding:22px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:14px;color:var(--mute)}
+.cfg{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0}
+.cfg+.cfg{border-top:1px solid var(--line)}
+.cfg h3{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%}
+.fs{display:flex;gap:10px}
+.f{display:flex;align-items:center;gap:2px;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:3px}
+.f button{width:30px;height:34px;border-radius:10px;font-size:18px;color:var(--mute)}.f button:hover{background:var(--glass2);color:var(--ink)}
+.f input{width:36px;text-align:center;background:none;border:0;color:var(--ink);font:600 16px Manrope,sans-serif;-moz-appearance:textfield;font-variant-numeric:tabular-nums}
+.f input::-webkit-inner-spin-button{display:none}
+.f span{font-size:12px;color:var(--mute);margin-right:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.stats b{display:block;font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.stats small{font-size:12px;color:var(--mute)}
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));z-index:30;transform:translate(-50%,-160%);opacity:0;visibility:hidden;pointer-events:none;padding:14px 22px;max-width:92vw;border-radius:18px;font-weight:500;text-align:center;transition:transform .5s cubic-bezier(.2,.9,.3,1.2)}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;pointer-events:auto}
+dialog{margin:auto;width:min(480px,94vw);max-height:90vh;overflow:auto;padding:24px;color:var(--ink);background:color-mix(in srgb,var(--bg) 82%,transparent)}
+dialog::backdrop{background:rgba(3,6,20,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+dialog[open]{animation:pop .3s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(10px)}}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;flex-wrap:wrap}
+.row+.row{border-top:1px solid var(--line)}
+.row label,.row .l{font-weight:500}
+.sw{position:relative;width:48px;height:28px;border-radius:99px;background:var(--glass2);border:1px solid var(--line);transition:background .25s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .25s}
+.sw[aria-checked="true"]{background:var(--a)}.sw[aria-checked="true"]::after{transform:translateX(20px)}
+select,.seg{background:var(--glass);color:var(--ink);border:1px solid var(--line);border-radius:12px;font:inherit;padding:8px 10px}
+select option{color:#111}
+.seg{display:flex;padding:3px;gap:2px}.seg button{padding:5px 12px;border-radius:9px;font-size:14px}.seg button[aria-pressed="true"]{background:var(--a);color:#0b1020;font-weight:600}
+input[type=range]{accent-color:var(--a);width:150px}
+.mini{padding:8px 12px;border-radius:12px;background:var(--glass);border:1px solid var(--line);font-size:14px}.mini:hover{background:var(--glass2)}
+.sp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.foot{display:flex;gap:10px;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+#dim{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:20;transition:opacity .35s}
+.saver .glass{-webkit-backdrop-filter:none;backdrop-filter:none}
+.saver .run .bar{animation:none}
+.saver .orb{display:none}
+.hdr{display:flex;gap:10px}
+#qDim:hover{transform:none}
+#qDim[aria-pressed="true"]{background:var(--a);color:#0b1020}
+.row .hint{flex:1 0 100%;margin:-6px 0 0}
+.v{min-width:4ch;text-align:right;font-variant-numeric:tabular-nums;color:var(--mute);font-size:14px}
+.sw:disabled{opacity:.4;cursor:default}
+@media(max-width:820px){main{grid-template-columns:minmax(0,1fr)}.stage{min-height:calc(100vh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:calc(100dvh - 128px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));justify-content:center;padding:24px 16px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body data-mode="idle">
+<div class="orbs"><div class="orb o1"></div><div class="orb o2"></div></div>
+<div id="dim" aria-hidden="true"></div>
+<div class="wrap">
+<header>
+  <div class="brand"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa7ff"/><stop offset="1" stop-color="#5eead4"/></linearGradient></defs><circle cx="14" cy="14" r="11" fill="none" stroke="url(#lg)" stroke-width="3" stroke-dasharray="48 21" stroke-linecap="round"/><circle cx="14" cy="14" r="3" fill="url(#lg)"/></svg>Cadence</div>
+  <div class="hdr"><button class="icon" id="qDim" aria-label="Dim screen" aria-pressed="false" title="Dim screen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="icon" id="openSet" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
+</header>
+<main>
+  <section class="glass stage" id="stage" aria-label="Timer">
+    <div class="ringbox">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--a)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient></defs><circle class="trk" cx="100" cy="100" r="90"/><circle class="bar" id="bar" cx="100" cy="100" r="90"/></svg>
+      <div class="core"><span class="pill" id="pill">READY</span><div class="time" id="time" role="timer" aria-live="off">25:00</div><div class="next" id="next"></div></div>
+    </div>
+    <div class="ctl">
+      <button class="btn main" id="bMain">Start</button>
+      <button class="btn" id="bStop">Stop</button>
+      <button class="btn" id="bReset">Reset</button>
+    </div>
+  </section>
+  <div class="side">
+    <section class="glass card" aria-label="Durations">
+      <h2>Durations</h2>
+      <div id="cfgs"></div>
+      <p class="hint">Changes apply from the next phase, so a running session is never interrupted.</p>
+    </section>
+    <section class="glass card" aria-label="Session">
+      <h2>This session</h2>
+      <div class="stats"><div><b id="sDone">0</b><small>Study sessions done</small></div><div><b id="sTot">0m</b><small>Total study time</small></div><div><b id="sCyc">–</b><small>Current cycle</small></div></div>
+    </section>
+  </div>
+</main>
+</div>
+<div class="glass toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog class="glass" id="dlg">
+  <h2 style="font-size:20px;margin-bottom:6px">Settings</h2>
+  <p class="hint" style="margin:0 0 6px">Your durations are saved automatically and used as your defaults.</p>
+  <div class="row"><span class="l">Sounds</span><button class="sw" id="swSound" role="switch" aria-label="Sounds"></button></div>
+  <div class="row"><label for="vol">Volume</label><input type="range" id="vol" min="0" max="100"></div>
+  <div class="row"><span class="l">Visual notifications</span><button class="sw" id="swVis" role="switch" aria-label="Visual notifications"></button></div>
+  <div class="row"><span class="l">Study ends with</span><div class="sp"><select id="ssel" aria-label="Study end sound"></select><button class="mini" data-pv="study">Preview</button><button class="mini" data-up="study">Upload</button></div></div>
+  <div class="row"><span class="l">Rest ends with</span><div class="sp"><select id="rsel" aria-label="Rest end sound"></select><button class="mini" data-pv="rest">Preview</button><button class="mini" data-up="rest">Upload</button></div></div>
+  <input type="file" id="file" accept="audio/mpeg,audio/wav,audio/x-m4a,audio/mp4,audio/*,.mp3,.wav,.m4a" hidden>
+  <div class="row"><span class="l">Keep screen on</span><button class="sw" id="swAwake" role="switch" aria-label="Keep screen on"></button><p class="hint" id="awakeHint"></p></div>
+  <div class="row"><span class="l">Dim screen</span><button class="sw" id="swDim" role="switch" aria-label="Dim screen"></button><p class="hint">Darkens the app to save battery on OLED screens and turns off blur and glow effects. Your device’s own brightness isn’t changed.</p></div>
+  <div class="row"><label for="dimLvl">Dim level</label><div class="sp"><input type="range" id="dimLvl" min="10" max="85" step="5"><span class="v" id="dimVal"></span></div></div>
+  <div class="row"><span class="l">Theme</span><div class="seg" id="theme"><button data-t="auto">Auto</button><button data-t="dark">Dark</button><button data-t="light">Light</button></div></div>
+  <div class="foot"><button class="mini" id="rSnd">Restore default sounds</button><button class="mini" id="rAll">Reset all settings</button><button class="btn main" id="close" style="min-width:90px;min-height:40px">Done</button></div>
+</dialog>
+
+<script>
+const $=s=>document.querySelector(s);
+const DEF={study:1500,rest:300,vol:70,sound:true,vis:true,theme:'auto',ss:'chime',rs:'bell',sn:'',rn:'',awake:false,dim:false,dimLvl:50};
+const ld=(k,d)=>{try{return Object.assign({},d,JSON.parse(localStorage.getItem(k))||{})}catch(e){return{...d}}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let S=ld('cad.settings',DEF);
+// run state: phase idle|study|rest; running; endAt (ms); left (ms, when paused); len (ms of current phase)
+let R=ld('cad.run',{phase:'idle',running:false,endAt:0,left:0,len:0,cycle:0,done:0,total:0,seen:0,gap:0});
+const MIN=60,MAX=23*3600+59*60;
+const dur=p=>S[p]*1000;
+const saveR=()=>sv('cad.run',R);
+const saveS=()=>sv('cad.settings',S);
+
+/* ---------- audio ---------- */
+const SND={chime:['Chime',[[784,0,.5],[1047,.18,.5],[1319,.36,.9]]],bell:['Bell',[[660,0,1.5],[1320,0,.9],[1980,0,.5]]],harp:['Harp',[[523,0,.9],[659,.12,.9],[784,.24,.9],[1047,.36,1.1]]],pulse:['Soft pulse',[[440,0,.3],[440,.4,.3],[554,.8,.7]]],digital:['Digital',[[880,0,.12],[880,.2,.12],[1175,.4,.35]]]};
+let ctx;
+const unlock=()=>{try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume()}catch(e){}};
+function synth(id){
+  unlock();if(!ctx)return;const t0=ctx.currentTime+.02,v=S.vol/100*.35;
+  (SND[id]||SND.chime)[1].forEach(([f,s,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t0+s);g.gain.linearRampToValueAtTime(v,t0+s+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+s+d);
+    o.connect(g).connect(ctx.destination);o.start(t0+s);o.stop(t0+s+d+.05)});
+}
+/* custom audio files live in IndexedDB so they persist */
+const idb=(m,k,v)=>new Promise((res,rej)=>{try{const r=indexedDB.open('cadence',1);r.onupgradeneeded=()=>r.result.createObjectStore('a');
+  r.onerror=()=>rej();r.onsuccess=()=>{const st=r.result.transaction('a',m==='get'?'readonly':'readwrite').objectStore('a');const q=m==='get'?st.get(k):m==='put'?st.put(v,k):st.delete(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej()}}catch(e){rej()}});
+async function play(kind,force){
+  if(!S.sound&&!force)return;
+  const id=kind==='study'?S.ss:S.rs;
+  if(id==='custom'){try{const b=await idb('get',kind);if(b){const a=new Audio(URL.createObjectURL(b));a.volume=S.vol/100;await a.play();return}}catch(e){}synth(kind==='study'?'chime':'bell');return}
+  synth(id);
+}
+
+/* ---------- notifications ---------- */
+let tt;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),7000)}
+$('#toast').onclick=()=>$('#toast').classList.remove('on');
+function notify(phaseStarted,away){
+  const msg=away?`Welcome back. You’re now in a ${phaseStarted==='rest'?'rest':'study'} period.`:phaseStarted==='rest'?'Study session completed. Time to rest!':'Break completed. Time to study!';
+  if(!away)play(phaseStarted==='rest'?'study':'rest');
+  if(S.vis){toast(msg);
+    try{if('Notification' in window&&Notification.permission==='granted'&&document.hidden&&!away)new Notification(phaseStarted==='rest'?'Time to rest':'Time to study',{body:msg,tag:'cadence',renotify:true})}catch(e){}}
+  if(!away&&navigator.vibrate)navigator.vibrate([200,100,200]);
+}
+
+/* ---------- state machine ---------- */
+const now=()=>Date.now();
+function begin(){unlock();R={...R,phase:'study',running:true,len:dur('study'),endAt:now()+dur('study'),cycle:1,gap:0,seen:now()};saveR();render();nativePerms().then(sched)}
+function pause(){tick();if(!R.running)return;R.left=Math.max(0,R.endAt-now());R.running=false;saveR();render();sched()}
+function resume(){if(R.running||R.phase==='idle')return;unlock();R.endAt=now()+R.left;R.running=true;R.seen=now();saveR();render();sched()}
+function stop(){
+  tick(); // catch up first so nothing is credited twice
+  if(R.phase==='study'){const left=R.running?Math.max(0,R.endAt-now()):R.left;R.total+=Math.max(0,R.len-left-(R.gap||0))} // keep the minutes already studied
+  R.phase='idle';R.running=false;R.cycle=0;R.left=0;R.gap=0;saveR();render();sched()}
+function reset(){R={phase:'idle',running:false,endAt:0,left:0,len:0,cycle:0,done:0,total:0,seen:0,gap:0};saveR();render();sched()}
+/* A gap longer than GAP between ticks means the device slept or the app was closed.
+   The schedule still realigns to the right phase, but time inside the gap is not credited as study time. */
+const GAP=120000;let lastSave=0;
+function tick(){
+  if(!R.running){return}
+  const t=now(),seen=R.seen||t,stale=t-seen>GAP,gs=stale?seen:0,ge=stale?t:0;
+  const ov=(a,b)=>Math.max(0,Math.min(b,ge)-Math.max(a,gs)); // overlap of [a,b] with the gap
+  let fired=null,guard=0;
+  while(t>=R.endAt&&guard++<5000){ // drift-free: next phase starts exactly when the last one ended
+    if(R.phase==='study'){
+      const lost=(R.gap||0)+ov(R.endAt-R.len,R.endAt);
+      R.total+=Math.max(0,R.len-lost);
+      if(!lost)R.done++; // only fully attended sessions count as completed
+      R.phase='rest';
+    }else{R.phase='study';R.cycle++}
+    R.gap=0;R.len=dur(R.phase);R.endAt+=R.len;fired=R.phase;
+  }
+  if(stale)R.gap=(R.gap||0)+ov(R.endAt-R.len,t);
+  R.seen=t;
+  if(fired){saveR();lastSave=t;notify(fired,stale);sched()}
+  else if(t-lastSave>5000){saveR();lastSave=t}
+  render();
+}
+
+/* ---------- rendering ---------- */
+const p2=n=>String(n).padStart(2,'0');
+function fmt(ms){const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}:${p2(m)}:${p2(s%60)}`:`${p2(m)}:${p2(s%60)}`}
+function human(sec){const h=Math.floor(sec/3600),m=Math.round(sec%3600/60);return h?`${h}h ${m}m`:`${m}m`}
+function render(){
+  const idle=R.phase==='idle',run=R.running;
+  const left=idle?dur('study'):run?Math.max(0,R.endAt-now()):R.left;
+  const len=idle?dur('study'):R.len;
+  $('#time').textContent=fmt(left);
+  $('#bar').style.strokeDashoffset=565.49*(1-(len?left/len:1));
+  $('#pill').textContent=idle?'READY':R.phase==='study'?'STUDY':'REST';
+  document.body.dataset.mode=idle?'study':R.phase;
+  $('#stage').className='glass stage'+(run?' run':'')+(!idle&&!run?' paused':'');
+  const nx=idle?'study':R.phase==='study'?'rest':'study';
+  $('#next').textContent=idle?`Study ${human(S.study)}, then rest ${human(S.rest)}`:`Next: ${nx==='rest'?'Rest':'Study'} · ${human(S[nx])}${run?'':' · paused'}`;
+  $('#bMain').textContent=idle?'Start':run?'Pause':'Resume';
+  $('#bStop').disabled=idle;$('#bReset').disabled=idle&&!R.done;
+  const live=R.phase==='study'?Math.max(0,(len-left-(R.gap||0))/1000):0;
+  $('#sDone').textContent=R.done;$('#sTot').textContent=human(Math.floor(R.total/1000+live));$('#sCyc').textContent=idle?'–':R.cycle;
+  document.title=idle?'Cadence – Study & Rest Timer':`${fmt(left)} · ${R.phase==='study'?'Study':'Rest'}`;
+}
+$('#bMain').onclick=()=>R.phase==='idle'?begin():R.running?pause():resume();
+$('#bStop').onclick=stop;$('#bReset').onclick=reset;
+
+/* ---------- duration controls ---------- */
+const cf=$('#cfgs');
+[['study','Study','var(--study)'],['rest','Rest','var(--rest)']].forEach(([k,n,c])=>{
+  cf.insertAdjacentHTML('beforeend',`<div class="cfg" data-k="${k}"><h3><i class="dot" style="background:${c}"></i>${n}</h3><div class="fs">
+  <div class="f" data-u="3600"><button data-d="-1" aria-label="${n} hours minus">−</button><input inputmode="numeric" aria-label="${n} hours"><span>h</span><button data-d="1" aria-label="${n} hours plus">+</button></div>
+  <div class="f" data-u="60"><button data-d="-5" aria-label="${n} minutes minus">−</button><input inputmode="numeric" aria-label="${n} minutes"><span>m</span><button data-d="5" aria-label="${n} minutes plus">+</button></div></div></div>`)});
+function fill(){document.querySelectorAll('.cfg').forEach(r=>{const s=S[r.dataset.k];const i=r.querySelectorAll('input');i[0].value=Math.floor(s/3600);i[1].value=Math.floor(s%3600/60)})}
+const clamp=v=>Math.min(MAX,Math.max(MIN,v));
+cf.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const r=b.closest('.cfg'),u=+b.parentNode.dataset.u;
+  S[r.dataset.k]=clamp(S[r.dataset.k]+(+b.dataset.d)*u);saveS();fill();render();sched()});
+cf.addEventListener('change',e=>{const r=e.target.closest('.cfg');if(!r)return;const i=r.querySelectorAll('input');
+  S[r.dataset.k]=clamp((parseInt(i[0].value)||0)*3600+(parseInt(i[1].value)||0)*60);saveS();fill();render();sched()});
+
+/* ---------- settings ---------- */
+const dlg=$('#dlg');
+function opts(sel,key,custom){sel.innerHTML=Object.entries(SND).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')+(custom?`<option value="custom">Custom: ${custom.replace(/[<&]/g,'')}</option>`:'');sel.value=S[key]}
+function sync(){
+  $('#swSound').setAttribute('aria-checked',S.sound);$('#swVis').setAttribute('aria-checked',S.vis);$('#vol').value=S.vol;
+  $('#swAwake').setAttribute('aria-checked',S.awake);drawDim();hintAwake();
+  opts($('#ssel'),'ss',S.sn);opts($('#rsel'),'rs',S.rn);
+  document.querySelectorAll('#theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===S.theme));
+  const dark=S.theme==='auto'?!matchMedia('(prefers-color-scheme: light)').matches:S.theme==='dark';
+  document.documentElement.dataset.theme=dark?'dark':'light';bars(dark);
+}
+$('#openSet').onclick=()=>{sync();dlg.showModal()};$('#close').onclick=()=>dlg.close();
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});
+$('#swSound').onclick=()=>{S.sound=!S.sound;saveS();sync()};
+$('#swVis').onclick=async()=>{S.vis=!S.vis;saveS();sync();
+  if(S.vis&&'Notification' in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch(e){}}};
+$('#swAwake').onclick=()=>{S.awake=!S.awake;saveS();sync();updateWake()};
+function drawDim(){
+  $('#dim').style.opacity=S.dim?S.dimLvl/100:0;document.body.classList.toggle('saver',S.dim);
+  $('#swDim').setAttribute('aria-checked',S.dim);$('#qDim').setAttribute('aria-pressed',S.dim);
+  $('#dimLvl').value=S.dimLvl;$('#dimVal').textContent=S.dim?S.dimLvl+'%':'Off';
+}
+$('#swDim').onclick=()=>{S.dim=!S.dim;saveS();drawDim()};
+$('#qDim').onclick=()=>{S.dim=!S.dim;saveS();drawDim()};
+$('#dimLvl').oninput=e=>{S.dimLvl=+e.target.value;S.dim=true;saveS();drawDim()}; // moving the slider previews the dim live
+$('#vol').oninput=e=>{S.vol=+e.target.value;saveS()};
+$('#vol').onchange=()=>play('study',true);
+$('#ssel').onchange=e=>{S.ss=e.target.value;saveS()};$('#rsel').onchange=e=>{S.rs=e.target.value;saveS()};
+document.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>play(b.dataset.pv,true));
+let upKind;
+document.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{upKind=b.dataset.up;$('#file').click()});
+$('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(f.size>15e6){toast('That file is over 15 MB. Choose a shorter sound.');return}
+  try{await idb('put',upKind,f);if(upKind==='study'){S.ss='custom';S.sn=f.name}else{S.rs='custom';S.rn=f.name}saveS();sync();play(upKind,true)}
+  catch(err){toast('Couldn’t save that file in this browser. Try another file.')}};
+$('#theme').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.theme=b.dataset.t;saveS();sync()};
+$('#rSnd').onclick=async()=>{S.ss='chime';S.rs='bell';S.sn=S.rn='';saveS();try{await idb('del','study');await idb('del','rest')}catch(e){}sync()};
+$('#rAll').onclick=async()=>{S={...DEF};saveS();try{await idb('del','study');await idb('del','rest')}catch(e){}fill();sync();render();updateWake()};
+matchMedia('(prefers-color-scheme: light)').addEventListener('change',sync);
+
+/* ---------- keep time accurate in the background ---------- */
+/* ---------- Android (Capacitor) native layer: no-ops in a normal browser ---------- */
+const CAP=window.Capacitor,NATIVE=!!(CAP&&CAP.isNativePlatform&&CAP.isNativePlatform());
+const LN=NATIVE&&CAP.Plugins.LocalNotifications,KA=NATIVE&&CAP.Plugins.KeepAwake;
+let permAsked=false;
+function bars(dark){const SB=NATIVE&&CAP.Plugins.SystemBars;if(SB)SB.setStyle({style:dark?'DARK':'LIGHT'}).catch(()=>{})} // DARK = light icons for dark backgrounds
+async function nativePerms(){
+  if(!LN||permAsked)return;permAsked=true;
+  try{await LN.requestPermissions();const e=await LN.checkExactNotificationSetting();
+    if(e.exact_alarm!=='granted'){toast('Allow “Alarms & reminders” for Cadence so alerts arrive on time with the screen off.');setTimeout(()=>LN.changeExactNotificationSetting().catch(()=>{}),2500)}}catch(e){}
+}
+/* Pre-schedules the next phase endings as OS notifications so alerts still arrive when the app is in the background or the screen is locked. */
+async function sched(){
+  if(!LN)return;
+  try{
+    const p=await LN.getPending();if(p.notifications.length)await LN.cancel({notifications:p.notifications.map(n=>({id:n.id}))});
+    if(!R.running)return;
+    const list=[];let at=R.endAt,ph=R.phase;
+    for(let i=0;i<40;i++){
+      list.push({id:i+1,title:ph==='study'?'Time to rest':'Time to study',body:ph==='study'?'Study session completed. Time to rest!':'Break completed. Time to study!',schedule:{at:new Date(at),allowWhileIdle:true},autoCancel:true});
+      ph=ph==='study'?'rest':'study';at+=dur(ph);
+    }
+    await LN.schedule({notifications:list});
+  }catch(e){}
+}
+let lock,wakeMsg=false;
+async function updateWake(){ // screen stays on whenever the option is on and the page is visible, even when idle
+  if(KA){try{S.awake?await KA.keepAwake():await KA.allowSleep();wakeMsg=false}catch(e){wakeMsg=true}hintAwake();return}
+  try{
+    if(S.awake&&navigator.wakeLock&&!lock&&document.visibilityState==='visible'){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>{lock=null});wakeMsg=false}
+    else if(!S.awake&&lock){await lock.release();lock=null;wakeMsg=false}
+  }catch(e){wakeMsg=true}
+  hintAwake();
+}
+function hintAwake(){
+  const h=$('#awakeHint');if(!h)return;
+  const sup=NATIVE||!!navigator.wakeLock;
+  h.textContent=!sup?'Not supported by this browser. Use your device’s display timeout setting instead.':S.awake&&wakeMsg?'Couldn’t keep the screen on here. Battery Saver or your browser settings may be blocking it.':'Stops the display from sleeping while this page is open and visible.';
+  $('#swAwake').disabled=!sup;
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(R.running){R.seen=now();saveR()}}else{tick();updateWake()}});
+window.addEventListener('pagehide',()=>{if(R.running){R.seen=now();saveR()}});
+window.addEventListener('focus',tick);window.addEventListener('pageshow',tick);
+let w;try{ // a worker ticks more reliably than the page when the tab is hidden
+  w=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),500)'])));w.onmessage=tick;
+}catch(e){setInterval(tick,500)}
+setInterval(()=>{if(!document.hidden)tick()},250);
+
+fill();sync();render();tick();
+updateWake();sched();
+if(S.vis&&'Notification' in window&&Notification.permission==='default'){$('#bMain').addEventListener('click',()=>{try{Notification.requestPermission()}catch(e){}},{once:true})}
+</script>
+</body>
+</html>
